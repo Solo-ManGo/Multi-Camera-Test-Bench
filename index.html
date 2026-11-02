@@ -32,11 +32,7 @@
     }
 
     body {
-      background-color: var(--bg);
-      background-image: 
-        linear-gradient(var(--grid) 1px, transparent 1px), 
-        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-      background-size: 40px 40px;
+      background-color: #0f172a; /* Dark solid background to seamlessly frame the presentation on mobile */
       color: var(--text);
       font-family: var(--font-main);
       overflow: hidden;
@@ -45,6 +41,7 @@
       justify-content: center;
       height: 100vh;
       touch-action: pan-y;
+      margin: 0;
     }
 
     /* Fixed aspect ratio container for predictable layout */
@@ -941,7 +938,9 @@
 
   // Responsive viewport scaling for seamless desktop and mobile view
   function resizeDeck() {
-    const scale = Math.min(window.innerWidth / 1400, window.innerHeight / 787) * 0.98;
+    // Maximize scale on mobile devices (100%), use slight padding (98%) on desktop
+    const scaleMultiplier = window.innerWidth <= 768 ? 1 : 0.98;
+    const scale = Math.min(window.innerWidth / 1400, window.innerHeight / 787) * scaleMultiplier;
     deckContainer.style.transform = `scale(${scale})`;
   }
 

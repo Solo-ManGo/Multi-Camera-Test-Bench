@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>EyeQ6H Centralized Multi-Camera Test Bench Architecture</title>
   
   <style>
@@ -44,6 +44,7 @@
       align-items: center;
       justify-content: center;
       height: 100vh;
+      touch-action: pan-y;
     }
 
     /* Fixed aspect ratio container for predictable layout */
@@ -59,6 +60,8 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.1);
       overflow: hidden;
       transform-origin: center center;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     /* Navigation Side Arrows */
@@ -66,29 +69,30 @@
       position: absolute;
       top: 50%;
       transform: translateY(-50%);
-      width: 48px;
-      height: 72px;
-      background: rgba(255, 255, 255, 0.55);
+      width: 56px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.75);
       backdrop-filter: blur(6px);
       border: 1px solid var(--border);
       border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.6rem;
+      font-size: 1.8rem;
       color: var(--text);
       cursor: pointer;
       z-index: 30;
       user-select: none;
       transition: all 0.2s ease;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .nav-arrow:hover {
+    .nav-arrow:hover, .nav-arrow:active {
       background: rgba(255, 255, 255, 0.95);
       color: var(--accent);
       border-color: var(--accent);
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
     }
 
     .nav-arrow.left { left: 12px; }
@@ -100,8 +104,8 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 40px;
-      background: rgba(248, 250, 252, 0.85);
+      height: 44px;
+      background: rgba(248, 250, 252, 0.9);
       backdrop-filter: blur(5px);
       border-bottom: 1px solid var(--border);
       display: flex;
@@ -111,7 +115,7 @@
       font-size: 0.75rem;
       color: var(--text-muted);
       justify-content: space-between;
-      z-index: 10;
+      z-index: 25;
     }
 
     .slide-header .doc-id {
@@ -119,9 +123,31 @@
       color: var(--accent);
     }
 
+    .notes-toggle-btn {
+      background: rgba(37, 99, 235, 0.1);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .notes-toggle-btn:hover, .notes-toggle-btn:active {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
     .slide {
       position: absolute;
-      inset: 40px 0 40px 0; /* Respect header and footer */
+      inset: 44px 0 40px 0; /* Respect header and footer */
       padding: 40px 70px;
       display: flex;
       flex-direction: column;
@@ -297,14 +323,15 @@
       cursor: pointer;
       transition: background-color 0.2s ease;
       user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .notes:hover {
+    .notes:hover, .notes:active {
       background: #fef3c7;
     }
 
     .notes::before {
-      content: "✖ Click notes box to hide (or Shift+N)";
+      content: "✖ Tap/Click notes box to hide (or Shift+N / Notes button)";
       display: block;
       font-size: 0.75rem;
       font-weight: bold;
@@ -317,6 +344,19 @@
     .notes.hidden {
       display: none;
     }
+
+    /* Mobile specific tweaks */
+    @media (max-width: 768px) {
+      .nav-arrow {
+        width: 44px;
+        height: 64px;
+        font-size: 1.4rem;
+      }
+      .slide-header {
+        font-size: 0.65rem;
+        padding: 0 10px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -325,13 +365,13 @@
   
   <div class="slide-header">
     <span>SYSTEM VALIDATION PROTOCOL // Presenting by Slava Mazgo</span>
-    <span class="doc-id">DOC-REF: EQ6H-HW-001 // REV A</span>
-    <span>RESTRICTED / INTERNAL</span>
+    <span class="doc-id">DOC-REF: EQ6H-HW-001</span>
+    <button class="notes-toggle-btn" id="notesToggleBtn" title="Toggle Speaker Notes">📝 Notes</button>
   </div>
 
   <!-- Clickable Side Arrow Controls -->
-  <div class="nav-arrow left" id="prevBtn" title="Previous Slide (Left Arrow)">❮</div>
-  <div class="nav-arrow right" id="nextBtn" title="Next Slide (Right Arrow / Double-Click)">❯</div>
+  <div class="nav-arrow left" id="prevBtn" title="Previous Slide (Swipe Right / Left Arrow)">❮</div>
+  <div class="nav-arrow right" id="nextBtn" title="Next Slide (Swipe Left / Right Arrow / Double-Tap)">❯</div>
 
   <!-- SLIDE 1: Title -->
   <section class="slide active">
@@ -762,19 +802,20 @@
   </section>
 
   <div class="slide-footer">
-    <span>Click side arrows or use Left/Right keys | Double-click slide to advance | Click notes box (or Shift+N) to toggle Notes</span>
+    <span>Swipe / Arrows / Double-tap to navigate | Tap Notes button to toggle notes</span>
     <span class="slide-counter" style="font-family: var(--font-mono); font-weight: bold;"></span>
   </div>
 
 </div>
 
-<!-- JavaScript to handle slide logic -->
+<!-- JavaScript to handle slide & mobile interaction logic -->
 <script>
   const slides = document.querySelectorAll('.slide');
   const counter = document.querySelector('.slide-counter');
   const deckContainer = document.getElementById('deckContainer');
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
+  const notesToggleBtn = document.getElementById('notesToggleBtn');
   const allNotes = document.querySelectorAll('.notes');
 
   let current = 0;
@@ -799,6 +840,13 @@
     updateSlide();
   }
 
+  function toggleActiveNotes() {
+    const notes = slides[current].querySelector('.notes');
+    if (notes) {
+      notes.classList.toggle('hidden');
+    }
+  }
+
   // Keyboard Navigation
   document.addEventListener('keydown', (e) => {
     if (e.key === "ArrowRight") {
@@ -810,17 +858,22 @@
     }
     
     if (e.shiftKey && (e.key === "n" || e.key === "N")) {
-      const notes = slides[current].querySelector('.notes');
-      if (notes) {
-        notes.classList.toggle('hidden');
-      }
+      toggleActiveNotes();
     }
   });
 
-  // Click directly on Speaker Notes box to hide it
+  // Mobile Header "Notes" Button Listener
+  if (notesToggleBtn) {
+    notesToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleActiveNotes();
+    });
+  }
+
+  // Click/Tap directly on Speaker Notes box to hide it
   allNotes.forEach(note => {
     note.addEventListener('click', (e) => {
-      e.stopPropagation(); // Stop click from propagating
+      e.stopPropagation();
       note.classList.add('hidden');
     });
   });
@@ -836,26 +889,66 @@
     nextSlide();
   });
 
-  // Double Click on Slide Free Space to Go 1 Slide Forward
+  // Double Click / Tap on Slide Free Space to Go 1 Slide Forward
   deckContainer.addEventListener('dblclick', (e) => {
-    // Ignore double-clicks on links, buttons, inputs, code blocks, or notes
-    if (e.target.closest('a, button, input, textarea, code, pre, .notes, .nav-arrow')) return;
-    
+    if (e.target.closest('a, button, input, textarea, code, pre, .notes, .nav-arrow, #notesToggleBtn')) return;
     nextSlide();
   });
 
-  // Initialize the presentation
+  // Touch Swipe Gesture Support for Mobile Devices
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchEndX = 0;
+  let touchEndY = 0;
+
+  deckContainer.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      touchStartX = e.touches[0].screenX;
+      touchStartY = e.touches[0].screenY;
+    }
+  }, { passive: true });
+
+  deckContainer.addEventListener('touchend', (e) => {
+    if (e.changedTouches.length === 1) {
+      touchEndX = e.changedTouches[0].screenX;
+      touchEndY = e.changedTouches[0].screenY;
+      handleTouchSwipe(e);
+    }
+  }, { passive: true });
+
+  function handleTouchSwipe(e) {
+    // Ignore swipe triggered inside clickable UI components
+    if (e.target.closest('a, button, input, textarea, code, pre, .notes, .nav-arrow, #notesToggleBtn')) return;
+
+    const swipeDistX = touchEndX - touchStartX;
+    const swipeDistY = touchEndY - touchStartY;
+    const minSwipeDist = 40; // minimum pixels for swipe
+
+    // Make sure horizontal swipe exceeds vertical movement to prevent breaking page scrolling
+    if (Math.abs(swipeDistX) > Math.abs(swipeDistY) && Math.abs(swipeDistX) > minSwipeDist) {
+      if (swipeDistX < 0) {
+        // Swiped Left -> Next Slide
+        nextSlide();
+      } else {
+        // Swiped Right -> Previous Slide
+        prevSlide();
+      }
+    }
+  }
+
+  // Initialize presentation
   updateSlide();
 
-  // Responsive scaling to fit web view seamlessly
+  // Responsive viewport scaling for seamless desktop and mobile view
   function resizeDeck() {
     const scale = Math.min(window.innerWidth / 1400, window.innerHeight / 787) * 0.98;
     deckContainer.style.transform = `scale(${scale})`;
   }
 
   window.addEventListener('resize', resizeDeck);
+  window.addEventListener('orientationchange', resizeDeck);
   
-  // Call once on initial load
+  // Initial scale calculation
   resizeDeck();
 </script>
 

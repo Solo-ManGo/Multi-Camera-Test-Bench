@@ -28,32 +28,6 @@ Navigate Right / Next Slide: Right Arrow key
 Navigate Left / Previous Slide: Left Arrow key
 
 Toggle Technical Speaker Notes: Shift + N
-
-🚀 How to Deploy to GitHub Pages
-
-Option 1: Automated Deployment via GitHub Actions (Recommended)
-
-Push or merge all repository files (including .github/workflows/deploy.yml) to your main branch:
-
-git add .
-git commit -m "Deploy EyeQ6H presentation to GitHub Pages"
-git push origin main
-
-
-Navigate to your GitHub repository in your web browser.
-
-Click on Settings → Pages.
-
-Under Build and deployment > Source, select GitHub Actions.
-
-The deployment workflow will trigger automatically and host your presentation at https://<your-username>.github.io/<your-repo-name>/.
-
-Option 2: Standard GitHub Pages Deployment
-
-Go to Settings → Pages in your GitHub repository.
-
-Under Build and deployment > Source, choose Deploy from a branch.
-
 Select the main branch and / (root) folder, then click Save.
 
 ⚖️ Legal & Compliance

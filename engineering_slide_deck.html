@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EyeQ6H Centralized Multi-Camera Test Bench Architecture</title>
+  
+  <style>
+    :root {
+      /* Engineering Light Theme */
+      --bg: #ffffff;
+      --grid: #e2e8f0;
+      --panel: #f8fafc;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --accent: #2563eb;
+      --accent-light: #eff6ff;
+      --border: #cbd5e1;
+      --border-dark: #94a3b8;
+      --pass: #15803d;
+      --fail: #b91c1c;
+      --warn: #ea580c;
+      
+      --font-main: 'Segoe UI', system-ui, sans-serif;
+      --font-mono: 'Consolas', 'Fira Code', monospace;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        linear-gradient(var(--grid) 1px, transparent 1px), 
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 40px 40px;
+      color: var(--text);
+      font-family: var(--font-main);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    /* Fixed aspect ratio container for predictable layout */
+    .deck-container {
+      position: relative;
+      width: 1400px;
+      height: 787px; /* 16:9 aspect ratio */
+      background: linear-gradient(rgba(255, 255, 255, 0.68), rgba(241, 245, 249, 0.72)),
+                  url('20221111larry06.jpg');
+      background-size: cover;
+      background-position: center;
+      border: 1px solid var(--border-dark);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transform-origin: center center;
+    }
+
+    /* Header for all slides */
+    .slide-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: rgba(248, 250, 252, 0.85);
+      backdrop-filter: blur(5px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      justify-content: space-between;
+      z-index: 10;
+    }
+
+    .slide-header .doc-id {
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 40px 0 40px 0; /* Respect header and footer */
+      padding: 40px 60px;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      transform: translateX(50px);
+      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+      pointer-events: none;
+      background: transparent;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      color: var(--text);
+      margin-bottom: 15px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    h2 {
+      font-size: 2.2rem;
+      color: var(--accent);
+      margin-bottom: 25px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--accent);
+      display: inline-block;
+    }
+
+    h3 {
+      font-size: 1.4rem;
+      color: var(--text);
+      margin-bottom: 15px;
+    }
+
+    .subtitle {
+      font-size: 1.4rem;
+      color: var(--text-muted);
+      margin-bottom: 30px;
+      font-family: var(--font-mono);
+    }
+
+    .content {
+      font-size: 1.15rem;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    ul {
+      margin-left: 20px;
+      margin-bottom: 20px;
+    }
+
+    li {
+      margin-bottom: 10px;
+    }
+
+    /* Technical Block Elements */
+    .tech-block {
+      background: rgba(248, 250, 252, 0.75);
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .tech-block.warn { border-left-color: var(--warn); }
+    .tech-block.pass { border-left-color: var(--pass); }
+
+    .code-snippet {
+      font-family: var(--font-mono);
+      background: rgba(241, 245, 249, 0.75);
+      backdrop-filter: blur(4px);
+      padding: 15px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      color: #334155;
+      overflow-x: auto;
+    }
+
+    /* Block Diagram Styles */
+    .diagram-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-grow: 1;
+      width: 100%;
+      margin: 20px 0;
+    }
+
+    .block {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(4px);
+      border: 2px solid var(--text);
+      padding: 15px 20px;
+      text-align: center;
+      font-weight: 600;
+      box-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+      position: relative;
+    }
+
+    .block.blue { border-color: var(--accent); background: rgba(239, 246, 255, 0.85); color: var(--accent); }
+    .block.green { border-color: var(--pass); background: rgba(240, 253, 244, 0.85); color: var(--pass); }
+      height: 30px;
+      background: var(--text-muted);
+      margin: 0 auto;
+      position: relative;
+    }
+    .arrow-down::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: -4px;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid var(--text-muted);
+    }
+
+    /* Table Styles */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 1.1rem;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(4px);
+    }
+    .data-table th, .data-table td {
+      border: 1px solid var(--border-dark);
+      padding: 12px 16px;
+      text-align: left;
+    }
+    .data-table th {
+      background: rgba(248, 250, 252, 0.85);
+      font-weight: 600;
+      color: var(--text);
+    }
+    .data-table tr:nth-child(even) { background: rgba(248, 250, 252, 0.6); }
+
+    /* Layout Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+
+    /* Footers and Notes */
+    .slide-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: rgba(248, 250, 252, 0.85);
+      backdrop-filter: blur(5px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      z-index: 10;
+    }
+
+    .notes {
+      position: absolute;
+      bottom: 40px; /* Above footer */
+      left: 0;
+      right: 0;
+      background: #fffbeb;
+      border-top: 2px solid #f59e0b;
+      padding: 20px 40px;
+      font-size: 1rem;
+      color: #78350f;
+      display: block;
+      z-index: 20;
+      box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .notes.hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="deck-container">
+  
+  <div class="slide-header">
+    <span>SYSTEM VALIDATION PROTOCOL</span>
+    <span class="doc-id">DOC-REF: EQ6H-HW-001 // REV A</span>
+    <span>RESTRICTED / INTERNAL</span>
+  </div>
+
+  <!-- SLIDE 1: Title -->
+  <section class="slide active">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+      <div style="font-family: var(--font-mono); color: var(--accent); margin-bottom: 10px;">[ PROJECT INITIATION ]</div>
+      <h1>Architecture and Validation Framework for a Next-Gen EyeQ6H 11-Camera Centralized Hub Board</h1>
+      <div class="subtitle">Hardware In-the-Loop (HIL) Test Bench Design & GMSL3 Integration</div>
+      
+      <div style="display: flex; gap: 40px; margin-top: 50px; border-top: 1px solid var(--border); padding-top: 30px;">
+        <div>
+          <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Target Architecture</div>
+          <div style="font-weight: 600; font-size: 1.1rem; margin-top: 5px;">Mobileye EyeQ6H Central ECU</div>
+        </div>
+        <div>
+          <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Sensor Payload</div>
+          <div style="font-weight: 600; font-size: 1.1rem; margin-top: 5px;">11x Uncompressed Camera Streams</div>
+        </div>
+        <div>
+          <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Backbone Standard</div>
+          <div style="font-weight: 600; font-size: 1.1rem; margin-top: 5px;">Analog Devices GMSL3 (12 Gbps)</div>
+        </div>
+      </div>
+      
+      <div style="margin-top: 40px; font-size: 0.85rem; color: var(--text-muted); padding: 12px 16px; background: rgba(248, 250, 252, 0.8); border: 1px solid var(--border); border-radius: 4px; border-left: 4px solid var(--accent); display: inline-block; max-width: fit-content;">
+        <b>Disclaimer:</b> All used information is in accordance with the <a href="https://www.mobileye.com/terms-of-use/" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 600;">Mobileye Terms of Use</a>.
+      </div>
+    </div>
+    
+    <div class="notes">
+      Welcome everyone. Today we are reviewing the architecture and validation strategy for our custom ADAS Central ECU built around the Mobileye EyeQ6H platform. This review covers hardware integration, the GMSL3 data pipeline, and our Hardware-in-the-Loop approach.
+    </div>
+  </section>
+
+  <!-- SLIDE 2: Executive Summary -->
+  <section class="slide">
+    <h2>Executive Summary & Project Goals</h2>
+    
+    <div class="grid-2" style="height: 100%;">
+      <div>
+        <div class="tech-block">
+          <h3>Primary Objective</h3>
+          <p>Validate a custom ADAS Central ECU built around the <b>Mobileye EyeQ6H SoC</b> driving a comprehensive 11-camera surround vision suite.</p>
+        </div>
+        
+        <div class="tech-block warn">
+          <h3>The Technical Challenge</h3>
+          <p>Ingesting multiple high-resolution uncompressed camera streams concurrently without packet loss, latency spikes, or signal degradation over the vehicle harness.</p>
+        </div>
+      </div>
+      
+      <div>
+        <div class="tech-block blue">
+          <h3>The Chosen Backbone</h3>
+          <p>Standardizing completely on <b>Analog Devices GMSL3</b> to deliver the mandatory bandwidth, virtual channel handling (up to 16 VCs), and low latency demanded by Mobileye vision accelerators.</p>
+        </div>
+
+        <div class="tech-block pass">
+          <h3>Test Bench Purpose</h3>
+          <ul style="margin-top: 10px; margin-bottom: 0;">
+            <li>Functional verification of the physical PCB.</li>
+            <li>Power-over-Coax (PoC) robustness under load.</li>
+            <li>Signal Integrity (SI) characterization.</li>
+            <li>EyeQ Kit SDK software stack testing under realistic thermal/electrical scenarios.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      Our technical challenge is immense: moving 11 raw camera feeds simultaneously into a single ECU. We have standardized on GMSL3 over FPD-Link due to its seamless integration with the EyeQ platform and its PAM4 12Gbps throughput. This bench will validate everything from board traces to the Linux Device Tree.
+    </div>
+  </section>
+
+  <!-- SLIDE 3: System Topology -->
+  <section class="slide">
+    <h2>System Topology & Chipset Selection</h2>
+    
+    <div class="diagram-container">
+      <svg width="900" height="420" viewBox="0 0 900 420" style="font-family: var(--font-mono);">
+        <!-- 11x Cameras -->
+        <rect x="300" y="10" width="300" height="40" rx="4" fill="#f8fafc" stroke="#475569" stroke-width="2"/>
+        <text x="450" y="35" text-anchor="middle" font-weight="bold" fill="#0f172a">[ 11x Remote Camera Pods ]</text>
+        
+        <!-- Arrow 1 -->
+        <line x1="450" y1="50" x2="450" y2="100" stroke="#475569" stroke-width="2" stroke-dasharray="4 2"/>
+        <polygon points="445,95 455,95 450,105" fill="#475569"/>
+        <text x="460" y="80" font-size="12" fill="#475569">(Power-over-Coax via Mini-FAKRA)</text>
+
+        <!-- Hub Board Boundary -->
+        <rect x="50" y="105" width="800" height="180" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="2" stroke-dasharray="8 4"/>
+        <text x="65" y="130" font-weight="bold" font-family="sans-serif" fill="#1d4ed8">Custom Hub Board Deserializer Matrix</text>
+
+        <!-- Deserializers -->
+        <rect x="100" y="150" width="220" height="100" rx="4" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+        <text x="210" y="180" text-anchor="middle" fill="#1e40af">2x GMSL3 In</text>
+        <text x="210" y="210" text-anchor="middle" font-weight="bold" font-size="18" fill="#1e3a8a">MAX96792A (1)</text>
+
+        <rect x="340" y="150" width="220" height="100" rx="4" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+        <text x="450" y="180" text-anchor="middle" fill="#1e40af">2x GMSL3 In</text>
+        <text x="450" y="210" text-anchor="middle" font-weight="bold" font-size="18" fill="#1e3a8a">MAX96792A (2)</text>
+
+        <rect x="580" y="150" width="220" height="100" rx="4" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+        <text x="690" y="180" text-anchor="middle" fill="#1e40af">2x GMSL3 In</text>
+        <text x="690" y="210" text-anchor="middle" font-weight="bold" font-size="18" fill="#1e3a8a">MAX96792A (3)</text>
+
+        <!-- Arrow 2 -->
+        <line x1="450" y1="285" x2="450" y2="340" stroke="#475569" stroke-width="2"/>
+        <polygon points="445,335 455,335 450,345" fill="#475569"/>
+        <line x1="210" y1="285" x2="210" y2="310" stroke="#475569" stroke-width="2"/>
+        <line x1="690" y1="285" x2="690" y2="310" stroke="#475569" stroke-width="2"/>
+        <line x1="210" y1="310" x2="690" y2="310" stroke="#475569" stroke-width="2"/>
+        
+        <text x="460" y="325" font-size="12" fill="#475569">(Dual 4-Lane MIPI CSI-2 per IC)</text>
+
+        <!-- EyeQ6H -->
+        <rect x="50" y="345" width="800" height="60" rx="4" fill="#0f172a" stroke="#334155" stroke-width="2"/>
+        <text x="450" y="382" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="22" fill="#ffffff">Mobileye EyeQ6H Central ADAS Processor</text>
+      </svg>
+    </div>
+
+    <div class="content" style="font-size: 1rem; display: flex; gap: 20px;">
+      <div style="flex: 1;"><b>Multi-Deserializer Matrix:</b> Deploying three Analog Devices MAX96792A ICs in parallel.</div>
+      <div style="flex: 1;"><b>Link Optimization:</b> GMSL3 dual-input tunneling yields 6 high-bandwidth coaxial ports for 11 zones + expansion.</div>
+      <div style="flex: 1;"><b>Host Pipeline:</b> Outputting raw video to EyeQ6H NVCSI via dual 4-lane MIPI CSI-2 links.</div>
+    </div>
+
+    <div class="notes">
+      Notice how we handle the bandwidth: We use three MAX96792A deserializers. Because GMSL3 uses PAM4 tunneling, each IC can ingest multiple camera streams on a single coax. This perfectly maps our Front, Side, and Rear arrays, feeding directly into the EyeQ6H's MIPI receivers.
+    </div>
+  </section>
+
+  <!-- SLIDE 4: Direct Video Injection (GSAS) -->
+  <section class="slide">
+    <h2>Direct Video Injection Data Flow</h2>
+    
+    <div style="margin-bottom: 20px; font-size: 1.1rem;">
+      Bypassing the camera’s image sensor and lens completely. Generating bit-accurate RAW video data and injecting it directly into the ADAS ECU's SerDes interface. The ECU cannot distinguish between the injection rig and a physical camera.
+    </div>
+
+    <div class="diagram-container" style="background: rgba(248, 250, 252, 0.6); backdrop-filter: blur(4px); border: 1px solid var(--border); padding: 20px; border-radius: 6px;">
+      <div style="display: flex; align-items: center; width: 100%; justify-content: space-between; font-family: var(--font-mono); font-size: 0.9rem;">
+        
+        <div class="block blue" style="width: 180px;">
+          <div style="font-size: 1.5rem; margin-bottom: 5px;">🖥️</div>
+          Simulation/Playback Host<br><span style="font-size: 0.7rem; font-weight: normal;">(CARLA / .pcap)</span>
+        </div>
+        
+        <div style="flex-grow: 1; text-align: center; color: var(--accent); position: relative;">
+          <div style="height: 2px; background: var(--accent); width: 100%;"></div>
+          <div style="position: absolute; top: -10px; right: 0; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 10px solid var(--accent);"></div>
+          <span style="background: rgba(248, 250, 252, 0.9); padding: 0 10px; position: relative; top: -20px;">PCIe Bus</span>
+        </div>
+
+        <div class="block green" style="width: 180px;">
+          <div style="font-size: 1.5rem; margin-bottom: 5px;">⚙️</div>
+          FPGA Injection Board<br><span style="font-size: 0.7rem; font-weight: normal;">(Protocol Bridge)</span>
+        </div>
+
+        <div style="flex-grow: 1; text-align: center; color: var(--pass); position: relative;">
+          <div style="height: 2px; background: var(--pass); width: 100%;"></div>
+          <div style="position: absolute; top: -10px; right: 0; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 10px solid var(--pass);"></div>
+          <span style="background: rgba(248, 250, 252, 0.9); padding: 0 10px; position: relative; top: -20px;">MIPI CSI-2</span>
+        </div>
+
+        <div class="block" style="width: 180px;">
+          <div style="font-size: 1.5rem; margin-bottom: 5px;">📻</div>
+          Serializer<br><span style="font-size: 0.7rem; font-weight: normal;">(Maxim GMSL)</span>
+        </div>
+
+        <div style="flex-grow: 1; text-align: center; color: var(--text-muted); position: relative;">
+          <div style="height: 2px; background: var(--text-muted); width: 100%;"></div>
+          <div style="position: absolute; top: -10px; right: 0; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 10px solid var(--text-muted);"></div>
+          <span style="background: rgba(248, 250, 252, 0.9); padding: 0 10px; position: relative; top: -20px;">Coaxial/FAKRA</span>
+        </div>
+
+        <div class="block" style="width: 180px; background: rgba(15, 23, 42, 0.95); color: white;">
+          <div style="font-size: 1.5rem; margin-bottom: 5px;">🧠</div>
+          ADAS ECU<br><span style="font-size: 0.7rem; font-weight: normal;">(EyeQ6H)</span>
+        </div>
+
+      </div>
+    </div>
+    
+    <div style="text-align: right; font-size: 0.75rem; color: var(--text-muted); margin-top: -15px; margin-bottom: 15px;">Source: GSAS Micro Systems</div>
+
+    <div class="grid-2" style="font-size: 0.95rem;">
+      <div>
+        <h3 style="color: var(--accent); margin-bottom: 10px; font-size: 1.1rem;">1. The Data Pipeline</h3>
+        <ul style="margin-left: 15px;">
+          <li><b>Simulation Host:</b> Outputs uncompressed frames via PCIe.</li>
+          <li><b>FPGA Board:</b> Converts frames to MIPI CSI-2, matching sensor pixel formats exactly.</li>
+          <li><b>Serializer:</b> Automotive PHY chip converting parallel MIPI into a high-speed RF stream.</li>
+          <li><b>Interconnect:</b> Heavy-shielded cables straight into ECU deserializers.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color: var(--warn); margin-bottom: 10px; font-size: 1.1rem;">2. Critical Integration Blockers</h3>
+        <ul style="margin-left: 15px;">
+          <li><b>I2C Back-Channel Emulation:</b> FPGA must run a Slave Emulator to spoof camera registers and prevent "Camera Lost" drops.</li>
+          <li><b>PoC Management:</b> The board must safely sink 9V-12V DC power from the ECU (dummy load) to avoid frying hardware.</li>
+          <li><b>Frame Synchronization:</b> Must intercept ECU hardware FSYNC pulses to lock simulated frame release.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="notes">
+      Pointing cameras at screens is flawed due to Moire and dynamic range limits. Instead, we use Direct Video Injection. The FPGA takes simulated data from PCIe, formats it as MIPI, and pushes it through a real GMSL serializer. The hardest parts are not the video—it's spoofing the I2C control channel, managing PoC voltages, and syncing to the ECU's hardware clock.
+    </div>
+  </section>
+
+  <!-- SLIDE 5: Physical Test Bench Hardware -->
+  <section class="slide">
+    <h2>Physical Test Bench Hardware Architecture</h2>
+    
+    <div class="tech-block">
+      <b>The Device Under Test (DUT):</b> Custom EyeQ6H carrier hub board mounted to a thermal management plate.
+    </div>
+
+    <h3 style="margin-top: 20px;">Video Feed Injection (Two Operational Configurations)</h3>
+    <div class="grid-2">
+      <div style="border: 1px solid var(--border); padding: 20px; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(4px);">
+        <h4 style="color: var(--accent); margin-bottom: 15px; font-size: 1.1rem;">Option A: Real-World Sensor Arrays</h4>
+        <p>A physical rig mounting the actual 11 automotive camera modules (e.g., Onsemi/Sony) connected via 10-meter coaxial cables.</p>
+      </div>
+      <div style="border: 1px solid var(--border); padding: 20px; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(4px);">
+        <h4 style="color: var(--pass); margin-bottom: 15px; font-size: 1.1rem;">Option B: HIL Video Simulator (Validation Mode)</h4>
+        <p>Digital PCIe frame grabber/simulator running an ADAS environment, feeding virtual streams into 11 discrete GMSL3 hardware serializers.</p>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top: 20px;">
+      <div class="tech-block">
+        <b>Interconnect Standards:</b><br>
+        Enforcing the use of Rosenberger HMTD® / Amphenol Mini-FAKRA multiport connectors across the bench to guarantee signal matching.
+      </div>
+      <div class="tech-block">
+        <b>Power Subsystem:</b><br>
+        Dedicated programmable laboratory power supplies mimicking automotive battery fluctuations (9V to 16V transient blocks).
+      </div>
+    </div>
+
+    <div class="notes">
+      Our bench supports two modes: connecting the physical automotive cameras on a rig, or swapping those out for the HIL video injection system we just discussed. In both cases, we mandate Mini-FAKRA connectors and use programmable power supplies to simulate alternator noise and voltage drops.
+    </div>
+  </section>
+
+  <!-- SLIDE 6: GMSL3 Physical Layer Challenges -->
+  <section class="slide">
+    <h2>Addressing GMSL3 Physical Layer Challenges</h2>
+    
+    <div class="tech-block warn" style="margin-bottom: 30px;">
+      <h3 style="margin-bottom: 5px;">PAM4 Signaling Constraints</h3>
+      <p>GMSL3 transitions from binary NRZ to 4-level Pulse Amplitude Modulation (PAM4) to reach 12 Gbps per link. The test bench must actively validate the highly compressed noise margins associated with PAM4.</p>
+    </div>
+
+    <div class="grid-2">
+      <div style="border: 1px solid var(--border); background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(4px);">
+        <div style="background: rgba(248, 250, 252, 0.85); padding: 10px 15px; font-weight: bold; border-bottom: 1px solid var(--border);">
+          Power-Over-Coax (PoC) Isolation
+        </div>
+        <div style="padding: 15px;">
+          <ul>
+            <li>Integrates precise inline current-monitoring shunts on each coaxial link.</li>
+            <li>Validates that the multi-stage PoC inductor/ferrite filtering array successfully isolates the 12 Gbps video line from high-frequency DC/DC regulator switching noise.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="border: 1px solid var(--border); background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(4px);">
+        <div style="background: rgba(248, 250, 252, 0.85); padding: 10px 15px; font-weight: bold; border-bottom: 1px solid var(--border);">
+          Signal Integrity (SI) Verification
+        </div>
+        <div style="padding: 15px;">
+          <ul>
+            <li>Integration of high-bandwidth oscilloscope probing points directly on the differential pairs.</li>
+            <li><b>Target metric:</b> Complete eye-diagram clearance and zero link-drops over extended 48-hour continuous testing loops.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      Because GMSL3 pushes 12 Gigabits per second, it uses PAM4 modulation. The voltage steps are tiny. If our Power-over-Coax filter isn't perfect, regulator switching noise will destroy the data eye. We have designed probing points directly on the differential pairs to validate the eye diagrams mechanically.
+    </div>
+  </section>
+
+  <!-- SLIDE 7: Software Stack Verification -->
+  <section class="slide">
+    <h2>Software Stack Verification & EyeQ Kit Integration</h2>
+    
+    <div class="tech-block">
+      <h3>The Control Loop (I2C Address Translation)</h3>
+      <p>All 11 cameras arrive with identical factory base I2C addresses (e.g., <code>0x30</code>). Bench validates the MAX96792A's hardware translation registers mapping unique, runtime aliases cleanly across the EyeQ6H master bus.</p>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <h3>Linux Device Tree (DTS) Mapping</h3>
+        <p style="margin-bottom: 10px;">Verification of virtual channel parameters written via EyeQ Kit SDK:</p>
+        <div class="code-snippet">
+&nvcsi_port0 {
+    status = "okay";
+    vc_id = <0 1 2 3>; /* VC routing */
+    remote-endpoint = <&max96792a_out>;
+};
+        </div>
+        <p style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);">Ensures DTS properly instantiates four virtual channels mapped to each physical NVCSI port.</p>
+      </div>
+
+      <div>
+        <h3>V4L2 Pipeline Binding</h3>
+        <p style="margin-bottom: 10px;">Validating the complete media controller pipeline within the Linux kernel.</p>
+        <div class="code-snippet" style="text-align: center; line-height: 2;">
+[Sensor Node]<br>
+   ↓<br>
+[Serializer]<br>
+   ↓<br>
+[Deserializer Subdev]<br>
+   ↓<br>
+[EyeQ6H NVCSI Host]<br>
+   ↓<br>
+[Deep Learning Core]
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      Hardware is only half the battle. On the software side, we use the EyeQ Kit SDK. The test bench validates that our I2C address translation works so the bus doesn't collide. We also verify the Linux Device Tree bindings to ensure the Video4Linux2 pipeline passes the data properly to the NVCSI host.
+    </div>
+  </section>
+
+  <!-- SLIDE 8: Validation Matrix -->
+  <section class="slide">
+    <h2>Test Bench Test Cases & Validation Matrix</h2>
+    
+    <p style="margin-bottom: 20px;">The bench is configured to run automated validation sweeps via scripting:</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 20%;">Test Domain</th>
+          <th style="width: 40%;">Specific Test Target</th>
+          <th style="width: 40%;">Pass/Fail Criteria</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>GMSL3 Integrity</b></td>
+          <td>24-Hour continuous streaming at 12 Gbps</td>
+          <td>Zero link loss or bit error rate (BER) spikes</td>
+        </tr>
+        <tr>
+          <td><b>PoC Validation</b></td>
+          <td>Simultaneous startup/boot sequence of all 11 cameras</td>
+          <td>No transient voltage dips below camera operating minimums</td>
+        </tr>
+        <tr>
+          <td><b>I2C Backchannel</b></td>
+          <td>High-frequency camera sensor register writes</td>
+          <td>100% command acknowledgement, no bus lockups</td>
+        </tr>
+        <tr>
+          <td><b>SDK Processing</b></td>
+          <td>Full-frame delivery to EyeQ6H accelerators</td>
+          <td>Uncompressed 30/60 fps arrival with perfect VC frame tagging</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="notes">
+      This is our core validation matrix. We are looking for zero Bit Error Rates over 24 hours of 12Gbps streaming, perfectly stable PoC voltage during the harsh 11-camera simultaneous boot, and 100% I2C command success.
+    </div>
+  </section>
+
+  <!-- SLIDE 9: Timeline -->
+  <section class="slide">
+    <h2>Next Steps & Timeline</h2>
+    
+    <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 30px;">
+      
+      <div style="display: flex; align-items: stretch; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(4px);">
+        <div style="background: var(--accent); color: white; width: 100px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">PHASE 1</div>
+        <div style="padding: 20px;">
+          <div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;">Schematic & Layout Review</div>
+          <div style="color: var(--text-muted);">Finalizing single-ended 50-ohm and differential 100-ohm trace target math for PAM4 GMSL3 lines.</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: stretch; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(4px);">
+        <div style="background: var(--text); color: white; width: 100px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">PHASE 2</div>
+        <div style="padding: 20px;">
+          <div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;">Bench Bring-up</div>
+          <div style="color: var(--text-muted);">Assembling test bench frame, power distribution blocks, and Rosenberger wiring bundles.</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: stretch; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(4px);">
+        <div style="background: var(--text); color: white; width: 100px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">PHASE 3</div>
+        <div style="padding: 20px;">
+          <div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;">Device Tree Integration</div>
+          <div style="color: var(--text-muted);">Coding the target DTS nodes using EyeQ Kit SDK framework alongside initial board bring-up.</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: stretch; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(4px);">
+        <div style="background: var(--text); color: white; width: 100px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">PHASE 4</div>
+        <div style="padding: 20px;">
+          <div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;">Automated HIL Testing</div>
+          <div style="color: var(--text-muted);">Launching multi-day validation scripts across worst-case thermal environments.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="notes">
+      Our immediate next step is Phase 1: wrapping up the layout review for those highly sensitive PAM4 differential pairs. We will transition to physical assembly next month, followed by SDK integration and finally, our automated HIL sweeps. Thank you.
+    </div>
+  </section>
+
+  <div class="slide-footer">
+    <span>Use Left/Right Arrows to navigate | Press Shift+N to toggle Speaker Notes | Info used per <a href="https://www.mobileye.com/terms-of-use/" target="_blank" style="color:var(--text-muted);text-decoration:underline;">Mobileye Terms of Use</a></span>
+    <span class="slide-counter" style="font-family: var(--font-mono); font-weight: bold;"></span>
+  </div>
+
+</div>
+
+<!-- JavaScript to handle slide logic -->
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const counter = document.querySelector('.slide-counter');
+
+  let current = 0;
+
+  function updateSlide() {
+    slides.forEach((slide, index) => {
+      slide.classList.toggle('active', index === current);
+    });
+    
+    if (counter) {
+      counter.innerHTML = `SLIDE ${(current + 1).toString().padStart(2, '0')} / ${slides.length.toString().padStart(2, '0')}`;
+    }
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === "ArrowRight") {
+      current = Math.min(slides.length - 1, current + 1);
+      updateSlide();
+    }
+    
+    if (e.key === "ArrowLeft") {
+      current = Math.max(0, current - 1);
+      updateSlide();
+    }
+    
+    if (e.shiftKey && (e.key === "n" || e.key === "N")) {
+      const notes = slides[current].querySelector('.notes');
+      if (notes) {
+        notes.classList.toggle('hidden');
+      }
+    }
+  });
+
+  // Initialize the presentation
+  updateSlide();
+
+  // Responsive scaling to fit web view seamlessly
+  function resizeDeck() {
+    const deck = document.querySelector('.deck-container');
+    // Scale factor to fit within the viewport (with a 2% padding margin)
+    const scale = Math.min(window.innerWidth / 1400, window.innerHeight / 787) * 0.98;
+    deck.style.transform = `scale(${scale})`;
+  }
+
+  window.addEventListener('resize', resizeDeck);
+  
+  // Call once on initial load
+  resizeDeck();
+</script>
+
+</body>
+</html>

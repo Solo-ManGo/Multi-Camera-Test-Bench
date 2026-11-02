@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -61,6 +61,39 @@
       transform-origin: center center;
     }
 
+    /* Navigation Side Arrows */
+    .nav-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 72px;
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      color: var(--text);
+      cursor: pointer;
+      z-index: 30;
+      user-select: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .nav-arrow:hover {
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .nav-arrow.left { left: 12px; }
+    .nav-arrow.right { right: 12px; }
+
     /* Header for all slides */
     .slide-header {
       position: absolute;
@@ -89,7 +122,7 @@
     .slide {
       position: absolute;
       inset: 40px 0 40px 0; /* Respect header and footer */
-      padding: 40px 60px;
+      padding: 40px 70px;
       display: flex;
       flex-direction: column;
       opacity: 0;
@@ -198,20 +231,6 @@
 
     .block.blue { border-color: var(--accent); background: rgba(239, 246, 255, 0.85); color: var(--accent); }
     .block.green { border-color: var(--pass); background: rgba(240, 253, 244, 0.85); color: var(--pass); }
-      height: 30px;
-      background: var(--text-muted);
-      margin: 0 auto;
-      position: relative;
-    }
-    .arrow-down::after {
-      content: '';
-      position: absolute;
-      bottom: -4px;
-      left: -4px;
-      border-left: 5px solid transparent;
-      border-right: 5px solid transparent;
-      border-top: 6px solid var(--text-muted);
-    }
 
     /* Table Styles */
     .data-table {
@@ -284,13 +303,17 @@
 </head>
 <body>
 
-<div class="deck-container">
+<div class="deck-container" id="deckContainer">
   
   <div class="slide-header">
     <span>SYSTEM VALIDATION PROTOCOL // Presenting by Slava Mazgo</span>
     <span class="doc-id">DOC-REF: EQ6H-HW-001 // REV A</span>
     <span>RESTRICTED / INTERNAL</span>
   </div>
+
+  <!-- Clickable Side Arrow Controls -->
+  <div class="nav-arrow left" id="prevBtn" title="Previous Slide (Left Arrow)">❮</div>
+  <div class="nav-arrow right" id="nextBtn" title="Next Slide (Right Arrow / Double-Click)">❯</div>
 
   <!-- SLIDE 1: Title -->
   <section class="slide active">
@@ -300,6 +323,10 @@
       <div class="subtitle">Hardware In-the-Loop (HIL) Test Bench Design & GMSL3 Integration</div>
       
       <div style="display: flex; gap: 40px; margin-top: 50px; border-top: 1px solid var(--border); padding-top: 30px;">
+        <div>
+          <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Presenter</div>
+          <div style="font-weight: 700; font-size: 1.1rem; margin-top: 5px; color: var(--accent);">Slava Mazgo</div>
+        </div>
         <div>
           <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Target Architecture</div>
           <div style="font-weight: 600; font-size: 1.1rem; margin-top: 5px;">Mobileye EyeQ6H Central ECU</div>
@@ -320,7 +347,7 @@
     </div>
     
     <div class="notes">
-      Welcome everyone. Today we are reviewing the architecture and validation strategy for our custom ADAS Central ECU built around the Mobileye EyeQ6H platform. This review covers hardware integration, the GMSL3 data pipeline, and our Hardware-in-the-Loop approach.
+      Welcome everyone. I'm Slava Mazgo. Today we are reviewing the architecture and validation strategy for our custom ADAS Central ECU built around the Mobileye EyeQ6H platform. This review covers hardware integration, the GMSL3 data pipeline, and our Hardware-in-the-Loop approach.
     </div>
   </section>
 
@@ -711,7 +738,7 @@
   </section>
 
   <div class="slide-footer">
-    <span>Use Left/Right Arrows to navigate | Press Shift+N to toggle Speaker Notes | Info used per <a href="https://www.mobileye.com/terms-of-use/" target="_blank" style="color:var(--text-muted);text-decoration:underline;">Mobileye Terms of Use</a></span>
+    <span>Click side arrows or use Left/Right keys to navigate | Double-click slide to advance | Press Shift+N for Notes | Info per <a href="https://www.mobileye.com/terms-of-use/" target="_blank" style="color:var(--text-muted);text-decoration:underline;">Mobileye Terms of Use</a></span>
     <span class="slide-counter" style="font-family: var(--font-mono); font-weight: bold;"></span>
   </div>
 
@@ -721,6 +748,9 @@
 <script>
   const slides = document.querySelectorAll('.slide');
   const counter = document.querySelector('.slide-counter');
+  const deckContainer = document.getElementById('deckContainer');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
 
   let current = 0;
 
@@ -734,15 +764,24 @@
     }
   }
 
+  function nextSlide() {
+    current = Math.min(slides.length - 1, current + 1);
+    updateSlide();
+  }
+
+  function prevSlide() {
+    current = Math.max(0, current - 1);
+    updateSlide();
+  }
+
+  // Keyboard Navigation
   document.addEventListener('keydown', (e) => {
     if (e.key === "ArrowRight") {
-      current = Math.min(slides.length - 1, current + 1);
-      updateSlide();
+      nextSlide();
     }
     
     if (e.key === "ArrowLeft") {
-      current = Math.max(0, current - 1);
-      updateSlide();
+      prevSlide();
     }
     
     if (e.shiftKey && (e.key === "n" || e.key === "N")) {
@@ -753,15 +792,32 @@
     }
   });
 
+  // Click Navigation on Side Arrows
+  prevBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    prevSlide();
+  });
+
+  nextBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    nextSlide();
+  });
+
+  // Double Click on Slide Free Space to Go 1 Slide Forward
+  deckContainer.addEventListener('dblclick', (e) => {
+    // Ignore double-clicks on links, buttons, inputs, code blocks, or notes
+    if (e.target.closest('a, button, input, textarea, code, pre, .notes, .nav-arrow')) return;
+    
+    nextSlide();
+  });
+
   // Initialize the presentation
   updateSlide();
 
   // Responsive scaling to fit web view seamlessly
   function resizeDeck() {
-    const deck = document.querySelector('.deck-container');
-    // Scale factor to fit within the viewport (with a 2% padding margin)
     const scale = Math.min(window.innerWidth / 1400, window.innerHeight / 787) * 0.98;
-    deck.style.transform = `scale(${scale})`;
+    deckContainer.style.transform = `scale(${scale})`;
   }
 
   window.addEventListener('resize', resizeDeck);
